@@ -15,6 +15,13 @@ namespace Qirby.Mathematics { // Fucking C#
         public Matrix(int r, int c) {
             _columns_ = c;
             _rows_ = r;
+            _mat = new Complex[r][];
+            for (int r_ = 0; r_ < r; r_++) {
+                _mat[r_] = new Complex[c];
+                for (int c_ = 0; c_ < c; c_++) {
+                    _mat[r_][c_] = 0;
+                }
+            }
         }
 
         public Matrix(Complex[][] mat) {
@@ -29,6 +36,9 @@ namespace Qirby.Mathematics { // Fucking C#
 
         public Complex Get(int r, int c)
             => _mat[r][c];
+
+        internal void Set(int r, int c, Complex v)
+            => _mat[r][c] = v;
 
         public List<Complex> GetRow(int r) {
             var res = new List<Complex>();
@@ -132,6 +142,12 @@ namespace Qirby.Mathematics { // Fucking C#
             Y = new Matrix(new Complex[][] {
                 new Complex[] {                       0, new Complex(1, 3 / 2.0) }, // [0, -i]
                 new Complex[] { new Complex(1, 1 / 2.0),                       0 } //  [i,  0]
+            }),
+            SWAP = new Matrix(new Complex[][] {
+                new Complex[] { 1, 0, 0, 0 },
+                new Complex[] { 0, 0, 1, 0 },
+                new Complex[] { 0, 1, 0, 0 },
+                new Complex[] { 0, 0, 0, 1 }
             });
 
         public void Print() {
