@@ -39,44 +39,63 @@ namespace Qirby.Simulation {
             return m;
         }
 
+        public Matrix MakeBetterShiftOperator(int dist) { // Dist is signed
+            if (dist == 0)
+                return Identity;
+            int dim = (int)Math.Pow(2, Math.Abs(dist) + 1);
+            var mat = new Complex[dim][];
+
+            for (int r = 0; r < dim; r++) {
+                mat[r] = new Complex[dim];
+                for (int c = 0; c < dim; c++) {
+                    mat[r][c] = 0; // FUCKKKKKK YOU
+                }
+            }
+
+            if (dist > 0) {
+                for (int r = 0; r < dim; r++) {
+                    int c = 0;
+                    if (r % 2 == 1)
+                        c = (dim / 2);
+                    mat[r][c + r / 2] = 1;
+                }
+            } else {
+                for (int r = 0; r < dim; r++) {
+                    if (r * 2 < dim)
+                        mat[r][(r * 2)] = 1;
+                    else
+                        mat[r][((r - (dim / 2)) * 2) + 1] = 1;
+                }
+            }
+            return new Matrix(mat);
+        }
+
         public Matrix MakeShiftOperator(int current, int target) {
             if (current == target)
                 return Identity;
 
-            Matrix m = null;
-            
-            int dist = Math.Abs(target - current);
+            int dist = Math.Abs(target - current); // Dist is not signed
             int dir = (target - current) / dist;
-            if (dist > 1) {
-                m = MakeShiftOperator(current, target - dir);
-                current = target - dir;
+
+            Matrix s = MakeBetterShiftOperator(dist * dir);
+            int lowest = current < target ? current : target;
+            Matrix m = lowest == 0 ? s : Matrix.I;
+            for (int i = 1; i < NumQubits - (dist); i++) { // ye?
+                m = Matrix.TensorProduct(m, i == lowest ? s : Matrix.I);
             }
 
-            int lowest = current < target ? current : target;
-            Matrix newM = lowest == 0 ? Matrix.SWAP : Matrix.I;
-            for (int i = 1; i < NumQubits - 1; i++) {
-                if (i == lowest)
-                    newM = Matrix.TensorProduct(newM, Matrix.SWAP);
-                else
-                    newM = Matrix.TensorProduct(newM, Matrix.I);
-            }
-            if (m == null)
-                m = newM;
-            else
-                m = newM * m; // Ye?
             return m;
         }
 
         public Matrix MakeOperation(Matrix op, params int[] qubits) {
-
-            Matrix operation = Identity;
-
             // Shift all qubits
             Matrix shift = Identity;
             var shifts = new int[qubits.Length];
             for (int i = 0; i < qubits.Length; i++) {
                 shifts[i] = i - qubits[i];
                 var sop = MakeShiftOperator(i - shifts[i], i);
+                if (sop.Columns__ != shift.Columns__)
+                    Console.WriteLine("Found it");
                 shift = sop * shift;
                 for (int j = i + 1; j < qubits.Length; j++) {
                     if (qubits[j] < qubits[i])
@@ -84,7 +103,7 @@ namespace Qirby.Simulation {
                 }
             }
 
-            operation = shift * operation;
+            Matrix operation = shift;
             if (qubits.Length > 0) {
                 Matrix m = op;
                 int numQubitsInOp = (int)Math.Log2(op.Columns__);

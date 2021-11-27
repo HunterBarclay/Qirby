@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 
 using Qirby.Simulation;
 using Qirby.Mathematics;
@@ -13,8 +14,18 @@ using Qirby.Mathematics;
 namespace Qirby {
     public class Program {
         static void Main(string[] args) {
+            var start = DateTime.Now;
             var c = UngodlyAdditionTest(1, 2);
             Console.WriteLine(c);
+            var time = DateTime.Now - start;
+            Console.WriteLine($"Elapsed Minutes: {time.Minutes}");
+
+            // for (int i = 2; i < 5; i++) {
+            //     (new State(i)).MakeShiftOperator(0, i - 1).Print();
+            //     Console.WriteLine();
+            // }
+
+            // NewschoolTest();
         }
 
         static void NewschoolTest() {
@@ -44,8 +55,8 @@ namespace Qirby {
             int[] b = GetBits(B);
 
             const int A_OFFSET = 0;
-            const int B_OFFSET = 4;
-            const int O_OFFSET = 8;
+            const int B_OFFSET = 3;
+            const int O_OFFSET = 6;
 
             // Load parameters
             for (int i = 0; i < 3; i++) {
@@ -57,7 +68,8 @@ namespace Qirby {
                     state.ApplyOperation(Matrix.X, i);
             }
 
-            // Make 4-bit adder operation
+            Console.WriteLine("Parameters loaded");
+            // Make 3-bit adder operation
 
             // First Bits
             var operation = state.CompileInstructionSet(
@@ -97,6 +109,16 @@ namespace Qirby {
                 Console.WriteLine($"[{i}] Op Compiled");
             }
 
+            var w = File.CreateText("Op.txt");
+            w.WriteLine($"{operation.Rows__}|{operation.Columns__}");
+            for (int r = 0; r < operation.Rows__; r++) {
+                for (int c = 0; c < operation.Columns__; c++) {
+                    w.WriteLine($"{operation.Get(r, c)}");
+                }
+            }
+            w.Flush();
+            w.Close();
+
             // Execute Operation
 
             Console.WriteLine("Running Operation");
@@ -104,6 +126,11 @@ namespace Qirby {
             Console.WriteLine("Operation Complete");
             var probs = state.GetProbabilities();
             var collapsedState = Measure(probs);
+
+            for (int i = 0; i < collapsedState.Length; i++) {
+                Console.WriteLine(collapsedState[i]);
+            }
+            Console.WriteLine();
 
             return ParseBits(collapsedState.Skip(6).ToArray());
         }
