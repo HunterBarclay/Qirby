@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Threading;
 
 using Math = System.Math;
 
@@ -105,16 +107,40 @@ namespace Qirby.Mathematics { // Fucking C#
             if (a.Columns__ != b.Rows__)
                 throw new Exception("Mismatched matricies");
 
+            var tasks = new List<Task>();
+
             var product = new Complex[a.Rows__][];
-            for (int r = 0; r < a.Rows__; r++) {
-                product[r] = new Complex[b.Columns__];
-                for (int c = 0; c < b.Columns__; c++) {
-                    Complex sum = new Complex(0);
-                    for (int i = 0; i < a.Columns__; i++) {
-                        sum += a._mat[r][i] * b._mat[i][c];
+            for (int _r = 0; _r < a.Rows__; _r++) {
+
+                int r = _r;
+
+                tasks.Add(Task.Factory.StartNew(() => {
+
+                    product[r] = new Complex[b.Columns__];
+                    for (int c = 0; c < b.Columns__; c++) {
+
+                        Complex sum = new Complex(0);
+                        for (int i = 0; i < a.Columns__; i++) {
+                            sum += a._mat[r][i] * b._mat[i][c];
+                        }
+                        product[r][c] = sum;
                     }
-                    product[r][c] = sum;
+
+                }));
+            }
+
+            bool done = false;
+            while (!done) {
+                Thread.Sleep(50);
+                int i = tasks.Count;
+                foreach (var t in tasks) {
+                    if (t.IsCompleted)
+                        i -= 1;
                 }
+                if (i == 0)
+                    done = true;
+                // else
+                //     Console.WriteLine(i);
             }
 
             return new Matrix(product);
@@ -148,6 +174,22 @@ namespace Qirby.Mathematics { // Fucking C#
                 new Complex[] { 0, 0, 1, 0 },
                 new Complex[] { 0, 1, 0, 0 },
                 new Complex[] { 0, 0, 0, 1 }
+            }),
+            CX = new Matrix(new Complex[][] {
+                new Complex[] { 1, 0, 0, 0 },
+                new Complex[] { 0, 1, 0, 0 },
+                new Complex[] { 0, 0, 0, 1 },
+                new Complex[] { 0, 0, 1, 0 }
+            }),
+            CCX = new Matrix(new Complex[][] {
+                new Complex[] { 1, 0, 0, 0, 0, 0, 0, 0 },
+                new Complex[] { 0, 1, 0, 0, 0, 0, 0, 0 },
+                new Complex[] { 0, 0, 1, 0, 0, 0, 0, 0 },
+                new Complex[] { 0, 0, 0, 1, 0, 0, 0, 0 },
+                new Complex[] { 0, 0, 0, 0, 1, 0, 0, 0 },
+                new Complex[] { 0, 0, 0, 0, 0, 1, 0, 0 },
+                new Complex[] { 0, 0, 0, 0, 0, 0, 0, 1 },
+                new Complex[] { 0, 0, 0, 0, 0, 0, 1, 0 }
             });
 
         public void Print() {

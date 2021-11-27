@@ -11,6 +11,14 @@ namespace Qirby.Simulation {
     }
 
     public class State {
+        private Matrix _identity = null;
+        public Matrix Identity {
+            get {
+                if (_identity == null)
+                    _identity = MakeIdentity(NumQubits);
+                return _identity;
+            }
+        }
         public int NumQubits { get; private set; }
 
         private Matrix _stateVector;
@@ -23,9 +31,9 @@ namespace Qirby.Simulation {
             _stateVector.Set(0, 0, 1); // Set all qubits to be in 0 position
         }
 
-        public Matrix MakeIdentity() {
+        public static Matrix MakeIdentity(int numQubits) {
             Matrix m = Matrix.I;
-            for (int i = 1; i < NumQubits; i++) {
+            for (int i = 1; i < numQubits; i++) {
                 m = Matrix.TensorProduct(m, Matrix.I);
             }
             return m;
@@ -33,7 +41,7 @@ namespace Qirby.Simulation {
 
         public Matrix MakeShiftOperator(int current, int target) {
             if (current == target)
-                return MakeIdentity();
+                return Identity;
 
             Matrix m = null;
             
@@ -61,10 +69,10 @@ namespace Qirby.Simulation {
 
         public Matrix MakeOperation(Matrix op, params int[] qubits) {
 
-            Matrix operation = MakeIdentity();
+            Matrix operation = Identity;
 
             // Shift all qubits
-            Matrix shift = MakeIdentity();
+            Matrix shift = Identity;
             var shifts = new int[qubits.Length];
             for (int i = 0; i < qubits.Length; i++) {
                 shifts[i] = i - qubits[i];
@@ -89,7 +97,7 @@ namespace Qirby.Simulation {
             }
 
             // Shift all qubits back
-            Matrix unshift = MakeIdentity();
+            Matrix unshift = Identity;
             for (int i = shifts.Length - 1; i >= 0; i--) {
                 unshift = MakeShiftOperator(i, i - shifts[i]) * unshift;
             }
@@ -98,35 +106,58 @@ namespace Qirby.Simulation {
             return operation;
         }
 
+        public void ApplyOperation(Instruction i) {
+            _stateVector = MakeOperation(i.Operation, i.Parameters) * _stateVector;
+        }
+
         public void ApplyOperation(Matrix op, params int[] qubits) {
             _stateVector = MakeOperation(op, qubits) * _stateVector;
         }
 
         public Matrix CompileInstructionSet(params object[] instructionSet) {
-            Matrix compiledInstructions = MakeIdentity();
-            Matrix op = MakeIdentity(); // Just to make the error go away
-            List<int> parameters = new List<int>();
+            Matrix op = Identity;
+            List<int> param = new List<int>();
+            List<Instruction> instructions = new List<Instruction>();
             for (int i = 0; i < instructionSet.Length; i++) {
-                object p = instructionSet[i];
-                if (p is Matrix) {
+                object a = instructionSet[i];
+                if (a is Matrix) {
                     if (i != 0) {
-                        if (parameters.Any()) // Not sure if I need to break this out into two calls but just to be safe
-                            compiledInstructions = MakeOperation(op, parameters.ToArray()) * compiledInstructions;
-                        else
-                            compiledInstructions = MakeOperation(op) * compiledInstructions;
-                        parameters.Clear();
+                        instructions.Add(new Instruction { Operation = op, Parameters = param.Count == 0 ? new int[0] : param.ToArray() });
+                        param.Clear();
                     }
-                    op = p as Matrix;
+                    op = a as Matrix;
                 } else {
-                    parameters.Add((int)p);
+                    param.Add((int)a);
                 }
             }
-            if (parameters.Count() > 0) { // Idk just in case
-                compiledInstructions = MakeOperation(op, parameters.ToArray()) * compiledInstructions;
-            } else {
-                compiledInstructions = MakeOperation(op) * compiledInstructions;
+            if (op != null)
+                instructions.Add(new Instruction { Operation = op, Parameters = param.Count == 0 ? new int[0] : param.ToArray() });
+            
+            return CompileInstructionSet(instructions.ToArray());
+        }
+
+        public Matrix CompileInstructionSet(params Instruction[] instructions) {
+            Matrix op = Identity;
+            for (int i = 0; i < instructions.Length; i++) {
+                op = MakeOperation(instructions[i].Operation, instructions[i].Parameters) * op;
             }
-            return compiledInstructions;
+            return op;
+        }
+
+        public Dictionary<int[], double> GetProbabilities() {
+            var dict = new Dictionary<int[], double>();
+            for (int i = 0; i < Math.Pow(2, NumQubits); i++) {
+                dict.Add(GetStateRepFromIndex(i), (_stateVector.Get(i, 0) * _stateVector.Get(i, 0)).Magnitude);
+            }
+            return dict;
+        }
+
+        public int[] GetStateRepFromIndex(int a) {
+            List<int> l = new List<int>();
+            for (int i = 0; i < a; i++) {
+                l.Add(i == 0 ? 0 : a % i);
+            }
+            return l.ToArray();
         }
     }
 
