@@ -36,10 +36,10 @@ namespace Qirby {
 
         static int UngodlyAdditionTest(int A, int B) {
 
-            if (A > 0xFF || B > 0xFF)
-                throw new Exception("4-bits dumbass");
+            if (A > 0x7 || B > 0x7)
+                throw new Exception("3-bits only");
 
-            var state = new State(12);
+            var state = new State(9);
             int[] a = GetBits(A);
             int[] b = GetBits(B);
 
@@ -48,12 +48,12 @@ namespace Qirby {
             const int O_OFFSET = 8;
 
             // Load parameters
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 3; i++) {
                 if (a[i] == 1)
                     state.ApplyOperation(Matrix.X, i);
             }
-            for (int i = 4; i < 8; i++) {
-                if (b[i - 4] == 1)
+            for (int i = 3; i < 6; i++) {
+                if (b[i - 3] == 1)
                     state.ApplyOperation(Matrix.X, i);
             }
 
@@ -73,8 +73,8 @@ namespace Qirby {
 
             Console.WriteLine("First Op Compiled");
 
-            for (int i = 1; i < 4; i++) {
-                if (i < 3) { // Next Carry
+            for (int i = 1; i < 3; i++) {
+                if (i < 2) { // Next Carry
                     operation = state.CompileInstructionSet(
                         Matrix.X, A_OFFSET + i,
                         Matrix.X, B_OFFSET + i,
@@ -105,7 +105,7 @@ namespace Qirby {
             var probs = state.GetProbabilities();
             var collapsedState = Measure(probs);
 
-            return ParseBits(collapsedState.Skip(8).ToArray());
+            return ParseBits(collapsedState.Skip(6).ToArray());
         }
 
         static int[] Measure(Dictionary<int[], double> probs) {
