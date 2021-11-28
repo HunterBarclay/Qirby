@@ -31,6 +31,13 @@ namespace Qirby.Simulation {
             _stateVector.Set(0, 0, 1); // Set all qubits to be in 0 position
         }
 
+        public State(State s) {
+            NumQubits = s.NumQubits;
+            _stateVector = s.StateVector;
+        }
+
+        public State Copy() => new State(this);
+
         public static Matrix MakeIdentity(int numQubits) {
             Matrix m = Matrix.I;
             for (int i = 1; i < numQubits; i++) {
@@ -172,11 +179,16 @@ namespace Qirby.Simulation {
         }
 
         public int[] GetStateRepFromIndex(int a) {
-            List<int> l = new List<int>();
-            for (int i = 0; i < a; i++) {
-                l.Add(i == 0 ? 0 : a % i);
+            int[] res = new int[NumQubits];
+            for (int i = NumQubits - 1; i >= 0; i--) {
+                if (a >= 0x1 << i) {
+                    a -= 0x1 << i;
+                    res[i] = 1;
+                } else {
+                    res[i] = 0;
+                }
             }
-            return l.ToArray();
+            return res;
         }
     }
 

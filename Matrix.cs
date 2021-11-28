@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
 
+using Qirby.Serialization;
+
 using Math = System.Math;
 
 namespace Qirby.Mathematics { // Fucking C#
@@ -24,6 +26,18 @@ namespace Qirby.Mathematics { // Fucking C#
                     _mat[r_][c_] = 0;
                 }
             }
+        }
+
+        public Matrix(MatrixData data) {
+            _mat = new Complex[data.Mat.Length][];
+            for (int r = 0; r < data.Mat.Length; r++) {
+                _mat[r] = new Complex[data.Mat[0].Length];
+                for (int c = 0; c < data.Mat[r].Length; c++) {
+                    _mat[r][c] = new Complex(data.Mat[r][c].Magnitude, data.Mat[r][c].Phase);
+                }
+            }
+            _rows_ = data.Mat.Length;
+            _columns_ = data.Mat[0].Length;
         }
 
         public Matrix(Complex[][] mat) {
@@ -220,6 +234,17 @@ namespace Qirby.Mathematics { // Fucking C#
                 }
             }
             return sum;
+        }
+
+        public static explicit operator MatrixData(Matrix m) {
+            ComplexData[][] data = new ComplexData[m.Rows__][];
+            for (int r = 0; r < m.Rows__; r++) {
+                data[r] = new ComplexData[m.Columns__];
+                for (int c = 0; c < m.Columns__; c++) {
+                    data[r][c] = new ComplexData { Magnitude = m._mat[r][c].Magnitude, Phase = m._mat[r][c].Phase };
+                }
+            }
+            return new MatrixData { Mat = data };
         }
     }
 

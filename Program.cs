@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using Newtonsoft.Json;
 
 using Qirby.Simulation;
 using Qirby.Mathematics;
+using Qirby.Serialization;
 
 /// <summary>
 /// Please note that I'm sidelining basically every thought of optimization until I've completed my self assigned
@@ -14,8 +16,24 @@ using Qirby.Mathematics;
 namespace Qirby {
     public class Program {
         static void Main(string[] args) {
+
+            // string json = JsonConvert.SerializeObject((MatrixData)Matrix.I);
+            // Console.WriteLine(json);
+            // Matrix m = new Matrix(JsonConvert.DeserializeObject<MatrixData>(json));
+            // m.Print();
+
+            // var state = new State(3);
+            // for (int i = 0; i < 8; i++) {
+            //     var rep = state.GetStateRepFromIndex(i);
+            //     string a = "";
+            //     for (int j = 0; j < rep.Length; j++) {
+            //         a += rep[j];
+            //     }
+            //     Console.WriteLine(a);
+            // }
+
             var start = DateTime.Now;
-            var c = UngodlyAdditionTest(1, 2);
+            var c = UngodlyAdditionTest(3, 2);
             Console.WriteLine(c);
             var time = DateTime.Now - start;
             Console.WriteLine($"Elapsed Minutes: {time.Minutes}");
@@ -26,6 +44,16 @@ namespace Qirby {
             // }
 
             // NewschoolTest();
+            // FuckIThinkItsBroken();
+        }
+
+        static void FuckIThinkItsBroken() {
+            var state = new State(6);
+            state.ApplyOperation(Matrix.X, 0);
+            state.ApplyOperation(Matrix.X, 2);
+            PrintStateVector(state);
+            state.ApplyOperation(Matrix.CCX, 0, 2, 5);
+            PrintStateVector(state);
         }
 
         static void NewschoolTest() {
@@ -68,6 +96,8 @@ namespace Qirby {
                     state.ApplyOperation(Matrix.X, i);
             }
 
+            // PrintStateVector(state);
+
             Console.WriteLine("Parameters loaded");
             // Make 3-bit adder operation
 
@@ -77,11 +107,14 @@ namespace Qirby {
                 Matrix.CX, A_OFFSET, O_OFFSET,
                 Matrix.CX, B_OFFSET, O_OFFSET,
                 // Carry O_1
-                Matrix.X, A_OFFSET,
-                Matrix.X, B_OFFSET,
-                Matrix.X, O_OFFSET + 1,
                 Matrix.CCX, A_OFFSET, B_OFFSET, O_OFFSET + 1
             );
+
+            // {
+            //     var newState = state.Copy();
+            //     newState.ApplyOperation(operation);
+            //     PrintStateVector(newState);
+            // }
 
             Console.WriteLine("First Op Compiled");
 
@@ -91,6 +124,7 @@ namespace Qirby {
                         Matrix.X, A_OFFSET + i,
                         Matrix.X, B_OFFSET + i,
                         Matrix.X, O_OFFSET + i,
+                        Matrix.X, O_OFFSET + i + 1,
                         Matrix.CCX, A_OFFSET + i, O_OFFSET + i, O_OFFSET + i + 1,
                         Matrix.CCX, B_OFFSET + i, O_OFFSET + i, O_OFFSET + i + 1,
                         Matrix.CCX, A_OFFSET + i, B_OFFSET + i, O_OFFSET + i + 1,
@@ -109,30 +143,30 @@ namespace Qirby {
                 Console.WriteLine($"[{i}] Op Compiled");
             }
 
-            var w = File.CreateText("Op.txt");
-            w.WriteLine($"{operation.Rows__}|{operation.Columns__}");
-            for (int r = 0; r < operation.Rows__; r++) {
-                for (int c = 0; c < operation.Columns__; c++) {
-                    w.WriteLine($"{operation.Get(r, c)}");
-                }
-            }
-            w.Flush();
-            w.Close();
+            var op_json = JsonConvert.SerializeObject((MatrixData)operation);
+            File.WriteAllLines("Op.json", new string[] { op_json });
 
             // Execute Operation
 
             Console.WriteLine("Running Operation");
             state.ApplyOperation(operation);
             Console.WriteLine("Operation Complete");
-            var probs = state.GetProbabilities();
-            var collapsedState = Measure(probs);
+            
+            PrintStateVector(state);
+            
+            return 0;
+        }
 
-            for (int i = 0; i < collapsedState.Length; i++) {
-                Console.WriteLine(collapsedState[i]);
+        static void PrintStateVector(State state) {
+            Console.WriteLine("\nFirst to Last\n");
+            for (int r = 0; r < state.StateVector.Rows__; r++) {
+                var stateRep = state.GetStateRepFromIndex(r).Reverse().ToArray();
+                string rep = "";
+                for (int i = 0; i < stateRep.Length; i++) {
+                    rep += stateRep[i];
+                }
+                Console.WriteLine($"{rep} => {state.StateVector.Get(r, 0)}");
             }
-            Console.WriteLine();
-
-            return ParseBits(collapsedState.Skip(6).ToArray());
         }
 
         static int[] Measure(Dictionary<int[], double> probs) {
