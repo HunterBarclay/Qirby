@@ -75,28 +75,28 @@ namespace Qirby {
 
         static int UngodlyAdditionTest(int A, int B) {
 
-            if (A > 0x7 || B > 0x7)
-                throw new Exception("3-bits only");
+            if (A > 0xF || B > 0xF)
+                throw new Exception("4-bits only");
 
-            var state = new State(9);
+            var state = new State(12);
             int[] a = GetBits(A);
             int[] b = GetBits(B);
 
             const int A_OFFSET = 0;
-            const int B_OFFSET = 3;
-            const int O_OFFSET = 6;
+            const int B_OFFSET = 4;
+            const int O_OFFSET = 8;
 
             // Load parameters
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 4; i++) {
                 if (a[i] == 1)
                     state.ApplyOperation(Matrix.X, i);
             }
-            for (int i = 3; i < 6; i++) {
-                if (b[i - 3] == 1)
+            for (int i = 4; i < 8; i++) {
+                if (b[i - 4] == 1)
                     state.ApplyOperation(Matrix.X, i);
             }
 
-            // PrintStateVector(state);
+            PrintStateVector(state);
 
             Console.WriteLine("Parameters loaded");
             // Make 3-bit adder operation
@@ -118,8 +118,8 @@ namespace Qirby {
 
             Console.WriteLine("First Op Compiled");
 
-            for (int i = 1; i < 3; i++) {
-                if (i < 2) { // Next Carry
+            for (int i = 1; i < 4; i++) {
+                if (i < 3) { // Next Carry
                     operation = state.CompileInstructionSet(
                         Matrix.X, A_OFFSET + i,
                         Matrix.X, B_OFFSET + i,
@@ -144,7 +144,7 @@ namespace Qirby {
             }
 
             var op_json = JsonConvert.SerializeObject((MatrixData)operation);
-            File.WriteAllLines("Op.json", new string[] { op_json });
+            File.WriteAllLines("4_bit_adder.json", new string[] { op_json });
 
             // Execute Operation
 
@@ -160,12 +160,14 @@ namespace Qirby {
         static void PrintStateVector(State state) {
             Console.WriteLine("\nFirst to Last\n");
             for (int r = 0; r < state.StateVector.Rows__; r++) {
-                var stateRep = state.GetStateRepFromIndex(r).Reverse().ToArray();
-                string rep = "";
-                for (int i = 0; i < stateRep.Length; i++) {
-                    rep += stateRep[i];
+                if (state.StateVector.Get(r, 0).Magnitude > 0) {
+                    var stateRep = state.GetStateRepFromIndex(r).Reverse().ToArray();
+                    string rep = "";
+                    for (int i = 0; i < stateRep.Length; i++) {
+                        rep += stateRep[i];
+                    }
+                    Console.WriteLine($"{rep} => {state.StateVector.Get(r, 0)}");
                 }
-                Console.WriteLine($"{rep} => {state.StateVector.Get(r, 0)}");
             }
         }
 
