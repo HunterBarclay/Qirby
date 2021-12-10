@@ -11,6 +11,7 @@ namespace Qirby.Simulation {
     }
 
     public class State {
+        private static Dictionary<int, Matrix> _cachedMatrices = new Dictionary<int, Matrix>();
         private Matrix _identity = null;
         public Matrix Identity {
             get {
@@ -39,16 +40,21 @@ namespace Qirby.Simulation {
         public State Copy() => new State(this);
 
         public static Matrix MakeIdentity(int numQubits) {
-            Matrix m = Matrix.I;
-            for (int i = 1; i < numQubits; i++) {
-                m = Matrix.TensorProduct(m, Matrix.I);
+            if (!_cachedMatrices.ContainsKey(numQubits)) {
+                Matrix m = Matrix.I;
+                for (int i = 1; i < numQubits; i++) {
+                    m = Matrix.TensorProduct(m, Matrix.I);
+                }
+                _cachedMatrices[numQubits] = m;
+                return m;
+            } else {
+                return _cachedMatrices[numQubits];
             }
-            return m;
         }
 
-        public Matrix MakeBetterShiftOperator(int dist) { // Dist is signed
+        public static Matrix MakeBetterShiftOperator(int dist) { // Dist is signed
             if (dist == 0)
-                return Identity;
+                return MakeIdentity(dist);
             int dim = (int)Math.Pow(2, Math.Abs(dist) + 1);
             var mat = new Complex[dim][];
 
@@ -77,9 +83,11 @@ namespace Qirby.Simulation {
             return new Matrix(mat);
         }
 
-        public Matrix MakeShiftOperator(int current, int target) {
+        public Matrix MakeShiftOperator(int current, int target)
+            => MakeShiftOperator(NumQubits, current, target);
+        public static Matrix MakeShiftOperator(int numQubits, int current, int target) {
             if (current == target)
-                return Identity;
+                return MakeIdentity(numQubits);
 
             int dist = Math.Abs(target - current); // Dist is not signed
             int dir = (target - current) / dist;
@@ -87,20 +95,23 @@ namespace Qirby.Simulation {
             Matrix s = MakeBetterShiftOperator(dist * dir);
             int lowest = current < target ? current : target;
             Matrix m = lowest == 0 ? s : Matrix.I;
-            for (int i = 1; i < NumQubits - (dist); i++) { // ye?
+            for (int i = 1; i < numQubits - (dist); i++) { // ye?
                 m = Matrix.TensorProduct(m, i == lowest ? s : Matrix.I);
             }
 
             return m;
         }
 
-        public Matrix MakeOperation(Matrix op, params int[] qubits) {
+        public Matrix MakeOperation(Matrix op, params int[] qubits)
+            => MakeOperation(NumQubits, op, qubits);
+
+        public static Matrix MakeOperation(int numQubits, Matrix op, params int[] qubits) {
             // Shift all qubits
-            Matrix shift = Identity;
+            Matrix shift = MakeIdentity(numQubits);
             var shifts = new int[qubits.Length];
             for (int i = 0; i < qubits.Length; i++) {
                 shifts[i] = i - qubits[i];
-                var sop = MakeShiftOperator(i - shifts[i], i);
+                var sop = MakeShiftOperator(numQubits, i - shifts[i], i);
                 if (sop.Columns__ != shift.Columns__)
                     Console.WriteLine("Found it");
                 shift = sop * shift;
@@ -114,7 +125,7 @@ namespace Qirby.Simulation {
             if (qubits.Length > 0) {
                 Matrix m = op;
                 int numQubitsInOp = (int)Math.Log2(op.Columns__);
-                for (int i = 1; i <= NumQubits - numQubitsInOp; i++) {
+                for (int i = 1; i <= numQubits - numQubitsInOp; i++) {
                     m = Matrix.TensorProduct(m, Matrix.I);
                 }
                 operation = m * operation;
@@ -123,9 +134,9 @@ namespace Qirby.Simulation {
             }
 
             // Shift all qubits back
-            Matrix unshift = Identity;
+            Matrix unshift = MakeIdentity(numQubits);
             for (int i = shifts.Length - 1; i >= 0; i--) {
-                unshift = MakeShiftOperator(i, i - shifts[i]) * unshift;
+                unshift = MakeShiftOperator(numQubits, i, i - shifts[i]) * unshift;
             }
             operation = unshift * operation;
 
@@ -140,8 +151,10 @@ namespace Qirby.Simulation {
             _stateVector = MakeOperation(op, qubits) * _stateVector;
         }
 
-        public Matrix CompileInstructionSet(params object[] instructionSet) {
-            Matrix op = Identity;
+        public Matrix CompileInstructionSet(params object[] instructionSet)
+            => CompileInstructionSet(NumQubits, instructionSet);
+        public static Matrix CompileInstructionSet(int numQubits, params object[] instructionSet) {
+            Matrix op = MakeIdentity(numQubits);
             List<int> param = new List<int>();
             List<Instruction> instructions = new List<Instruction>();
             for (int i = 0; i < instructionSet.Length; i++) {
@@ -159,13 +172,15 @@ namespace Qirby.Simulation {
             if (op != null)
                 instructions.Add(new Instruction { Operation = op, Parameters = param.Count == 0 ? new int[0] : param.ToArray() });
             
-            return CompileInstructionSet(instructions.ToArray());
+            return CompileInstructionSet(numQubits, instructions.ToArray());
         }
 
-        public Matrix CompileInstructionSet(params Instruction[] instructions) {
-            Matrix op = Identity;
+        public Matrix CompileInstructionSet(params Instruction[] instructions)
+            => CompileInstructionSet(NumQubits, instructions);
+        public static Matrix CompileInstructionSet(int numQubits, params Instruction[] instructions) {
+            Matrix op = MakeIdentity(numQubits);
             for (int i = 0; i < instructions.Length; i++) {
-                op = MakeOperation(instructions[i].Operation, instructions[i].Parameters) * op;
+                op = MakeOperation(numQubits, instructions[i].Operation, instructions[i].Parameters) * op;
             }
             return op;
         }

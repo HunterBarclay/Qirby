@@ -75,26 +75,27 @@ namespace Qirby {
 
         static int UngodlyAdditionTest(int A, int B) {
 
-            if (A > 0xF || B > 0xF)
-                throw new Exception("4-bits only");
+            if (A > 0x7 || B > 0x7)
+                throw new Exception("3-bits only");
 
-            var state = new State(12);
+            var state = new State(9); // 6 for input, 3 for output, 1 for selection
             int[] a = GetBits(A);
             int[] b = GetBits(B);
 
             const int A_OFFSET = 0;
-            const int B_OFFSET = 4;
-            const int O_OFFSET = 8;
+            const int B_OFFSET = 3;
+            const int O_OFFSET = 6;
 
             // Load parameters
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 3; i++) {
                 if (a[i] == 1)
                     state.ApplyOperation(Matrix.X, i);
             }
-            for (int i = 4; i < 8; i++) {
-                if (b[i - 4] == 1)
-                    state.ApplyOperation(Matrix.X, i);
-            }
+            // for (int i = 3; i < 6; i++) {
+            //     if (b[i - 3] == 1)
+            //         state.ApplyOperation(Matrix.X, i);
+            // }
+            state.ApplyOperation(Matrix.TensorProduct(Matrix.H, Matrix.H, Matrix.H), 3, 4, 5);
 
             PrintStateVector(state);
 
@@ -102,7 +103,7 @@ namespace Qirby {
             // Make 3-bit adder operation
 
             // First Bits
-            var operation = state.CompileInstructionSet(
+            var operation = State.CompileInstructionSet(9,
                 // Sum O_0
                 Matrix.CX, A_OFFSET, O_OFFSET,
                 Matrix.CX, B_OFFSET, O_OFFSET,
@@ -118,9 +119,9 @@ namespace Qirby {
 
             Console.WriteLine("First Op Compiled");
 
-            for (int i = 1; i < 4; i++) {
-                if (i < 3) { // Next Carry
-                    operation = state.CompileInstructionSet(
+            for (int i = 1; i < 3; i++) {
+                if (i < 2) { // Next Carry
+                    operation = State.CompileInstructionSet(9,
                         Matrix.X, A_OFFSET + i,
                         Matrix.X, B_OFFSET + i,
                         Matrix.X, O_OFFSET + i,
@@ -135,7 +136,7 @@ namespace Qirby {
                 }
 
                 // Finish Sum
-                operation = state.CompileInstructionSet(
+                operation = State.CompileInstructionSet(9,
                     Matrix.CX, A_OFFSET + i, O_OFFSET + i,
                     Matrix.CX, B_OFFSET + i, O_OFFSET + i
                 ) * operation;
@@ -149,7 +150,7 @@ namespace Qirby {
             // Execute Operation
 
             Console.WriteLine("Running Operation");
-            state.ApplyOperation(operation);
+            state.ApplyOperation(operation, 0, 1, 2, 3, 4, 5, 6, 7, 8);
             Console.WriteLine("Operation Complete");
             
             PrintStateVector(state);
