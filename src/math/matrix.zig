@@ -3,7 +3,11 @@
 const std = @import("std");
 const assert = std.debug.assert;
 
-pub fn Matrix(comptime T: type, R: usize, C: usize) type {
+pub const MatrixError = error{
+    MisMatchedDimensions,
+};
+
+pub fn Matrix(comptime T: type) type {
     comptime {
         assert(std.meta.hasMethod(T, "init"));
         assert(std.meta.hasMethod(T, "identity"));
@@ -14,16 +18,38 @@ pub fn Matrix(comptime T: type, R: usize, C: usize) type {
     }
 
     return struct {
-        pub const numCols = C;
-        pub const numRows = R;
         const Self = @This();
 
-        elements: [R][C]T,
+        elements: std.ArrayList(std.ArrayList(T)),
+        nRows: usize,
+        nCols: usize,
+        allocator: std.mem.Allocator,
 
-        pub fn init() Self {
+        pub fn init(allocator: std.mem.Allocator, nRows: usize, nCols: usize) !Self {
+            var elems = try std.ArrayList(std.ArrayList(T)).initCapacity(allocator, nRows);
+
+            var r: usize = 0;
+            while (r < nRows) : (r += 1) {
+                var row = try std.ArrayList(T).initCapacity(allocator, nCols);
+                var c: usize = 0;
+                while (c < nCols) : (c += 1) {
+                    try row.append(T.zero());
+                }
+                try elems.append(row);
+            }
             return Self{
-                .elements = .{.{T.zero()} ** C} ** R,
+                .elements = elems,
+                .nRows = nRows,
+                .nCols = nCols,
+                .allocator = allocator,
             };
+        }
+
+        pub fn deinit(self: Self) void {
+            for (self.elements.items) |row| {
+                row.deinit();
+            }
+            self.elements.deinit();
         }
 
         pub fn get(self: *const Self, r: usize, c: usize) *const T {
@@ -38,28 +64,24 @@ pub fn Matrix(comptime T: type, R: usize, C: usize) type {
             self.elements[r][c] = val;
         }
 
-        pub fn getNumCols(self: Self) usize {
-            _ = self;
-            return Self.numCols;
-        }
+        // pub fn mult(self: Self, b: anytype, resType: T) MatrixError!T {
+        //     return try blk: {
+        //         break :blk .{};
+        //     } catch MatrixError.MisMatchedDimensions;
+        // }
 
-        pub fn getNumRows(self: Self) usize {
-            _ = self;
-            return Self.numRows;
-        }
+        pub fn identity(allocator: std.mem.Allocator, nRows: usize, nCols: usize) !Self {
+            assert(nRows == nCols);
 
-        pub const identity: Self = blk: {
-            var m = Self.init();
+            const m = try Self.init(allocator, nRows, nCols);
 
-            // Weird indexing practice to avoid overflow and respect bounds of usize.
-            var i = (if (R < C) R else C);
-            while (i > 0) {
-                i -= 1;
-                m.set(i, i, T.identity());
+            var i: usize = 0;
+            while (i < nRows) : (i += 1) {
+                m.elements.items[i].items[i] = T.identity();
             }
 
-            break :blk m;
-        };
+            return m;
+        }
     };
 }
 
