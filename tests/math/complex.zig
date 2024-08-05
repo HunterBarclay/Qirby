@@ -92,7 +92,7 @@ test "complex mutMult [ (1) * (i) ]" {
     var a = qirby.math.Complex.from(1, 0);
     const b = qirby.math.Complex.from(0, 1);
 
-    a.mutMult(b);
+    _ = a.mutMult(b);
 
     try expect(a.imag == 1);
     try expect(a.real == 0);

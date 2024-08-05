@@ -1,4 +1,6 @@
 //! Matrix for Qirby
+//! TODO:
+//! - Bound checks for get/set
 
 const std = @import("std");
 const assert = std.debug.assert;
@@ -12,30 +14,29 @@ pub fn Matrix(comptime T: type) type {
         assert(std.meta.hasMethod(T, "init"));
         assert(std.meta.hasMethod(T, "identity"));
         assert(std.meta.hasMethod(T, "zero"));
-        assert(std.meta.hasMethod(T, "add"));
-        assert(std.meta.hasMethod(T, "mult"));
+        assert(std.meta.hasMethod(T, "mutAdd"));
+        assert(std.meta.hasMethod(T, "mutMult"));
+        assert(std.meta.hasMethod(T, "clone"));
         assert(std.meta.hasMethod(T, "toString"));
     }
 
     return struct {
         const Self = @This();
 
-        elements: std.ArrayList(std.ArrayList(T)),
+        elements: std.ArrayList(T),
         nRows: usize,
         nCols: usize,
         allocator: std.mem.Allocator,
 
         pub fn init(allocator: std.mem.Allocator, nRows: usize, nCols: usize) !Self {
-            var elems = try std.ArrayList(std.ArrayList(T)).initCapacity(allocator, nRows);
+            assert(nRows > 0);
+            assert(nCols > 0);
+
+            var elems = try std.ArrayList(T).initCapacity(allocator, nRows * nCols);
 
             var r: usize = 0;
-            while (r < nRows) : (r += 1) {
-                var row = try std.ArrayList(T).initCapacity(allocator, nCols);
-                var c: usize = 0;
-                while (c < nCols) : (c += 1) {
-                    try row.append(T.zero());
-                }
-                try elems.append(row);
+            while (r < elems.capacity) : (r += 1) {
+                try elems.append(T.zero());
             }
             return Self{
                 .elements = elems,
@@ -46,38 +47,60 @@ pub fn Matrix(comptime T: type) type {
         }
 
         pub fn deinit(self: Self) void {
-            for (self.elements.items) |row| {
-                row.deinit();
-            }
             self.elements.deinit();
         }
 
-        pub fn get(self: *const Self, r: usize, c: usize) *const T {
-            return &self.elements[r][c];
+        pub fn setAll(self: *Self, all: []const T) !void {
+            assert(all.len == self.elements.items.len);
+
+            for (all, 0..) |elem, i| {
+                self.elements.items[i] = elem;
+            }
         }
 
-        pub fn getMut(self: *Self, r: usize, c: usize) *T {
-            return &self.elements[r][c];
+        pub inline fn get(self: *const Self, r: usize, c: usize) *const T {
+            return &self.elements.items[r * self.nCols + c];
         }
 
-        pub fn set(self: *Self, r: usize, c: usize, val: T) void {
-            self.elements[r][c] = val;
+        pub inline fn getMut(self: *Self, r: usize, c: usize) *T {
+            return &self.elements.items[r * self.nCols + c];
         }
 
-        // pub fn mult(self: Self, b: anytype, resType: T) MatrixError!T {
-        //     return try blk: {
-        //         break :blk .{};
-        //     } catch MatrixError.MisMatchedDimensions;
-        // }
+        pub inline fn set(self: *Self, r: usize, c: usize, val: T) void {
+            self.elements.items[r * self.nCols + c] = val;
+        }
+
+        pub fn mult(self: Self, allocator: std.mem.Allocator, b: Matrix(T)) !Matrix(T) {
+            assert(self.nCols == b.nRows);
+
+            var resMatrix = try Matrix(T).init(allocator, self.nRows, b.nCols);
+
+            var aRow: usize = 0;
+            while (aRow < self.nRows) : (aRow += 1) {
+                var bCol: usize = 0;
+                while (bCol < b.nCols) : (bCol += 1) {
+                    var prodSum: T = T.zero();
+                    var sharedDim: usize = 0;
+                    while (sharedDim < self.nCols) : (sharedDim += 1) {
+                        var tmp = self.get(aRow, sharedDim).clone();
+                        _ = tmp.mutMult(b.get(sharedDim, bCol).*);
+                        _ = prodSum.mutAdd(tmp);
+                    }
+                    resMatrix.set(aRow, bCol, prodSum);
+                }
+            }
+
+            return resMatrix;
+        }
 
         pub fn identity(allocator: std.mem.Allocator, nRows: usize, nCols: usize) !Self {
             assert(nRows == nCols);
 
-            const m = try Self.init(allocator, nRows, nCols);
+            var m = try Self.init(allocator, nRows, nCols);
 
             var i: usize = 0;
             while (i < nRows) : (i += 1) {
-                m.elements.items[i].items[i] = T.identity();
+                m.set(i, i, T.identity());
             }
 
             return m;
@@ -85,7 +108,7 @@ pub fn Matrix(comptime T: type) type {
     };
 }
 
-fn QiMatrixScalar(comptime T: type, toStr: fn (T, std.mem.Allocator) []const u8) type {
+fn MatrixScalar(comptime T: type, toStr: fn (T, std.mem.Allocator) []const u8) type {
     return struct {
         const Self = @This();
 
@@ -93,6 +116,10 @@ fn QiMatrixScalar(comptime T: type, toStr: fn (T, std.mem.Allocator) []const u8)
 
         pub fn init() Self {
             return .{ .value = 0.0 };
+        }
+
+        pub fn from(val: T) Self {
+            return .{ .value = val };
         }
 
         pub fn identity() Self {
@@ -103,12 +130,18 @@ fn QiMatrixScalar(comptime T: type, toStr: fn (T, std.mem.Allocator) []const u8)
             return .{ .value = 0.0 };
         }
 
-        pub fn add(self: Self, b: Self) Self {
-            return .{ .value = self.value + b.value };
+        pub fn mutAdd(self: *Self, b: Self) *Self {
+            self.value += b.value;
+            return self;
         }
 
-        pub fn mult(self: Self, b: Self) Self {
-            return .{ .value = self.value * b.value };
+        pub fn mutMult(self: *Self, b: Self) *Self {
+            self.value *= b.value;
+            return self;
+        }
+
+        pub fn clone(self: Self) Self {
+            return Self{ .value = self.value };
         }
 
         pub fn toString(self: Self, allocator: std.mem.Allocator) []const u8 {
@@ -117,14 +150,21 @@ fn QiMatrixScalar(comptime T: type, toStr: fn (T, std.mem.Allocator) []const u8)
     };
 }
 
-pub const QiF32 = QiMatrixScalar(f32, struct {
+pub const MFloat = MatrixScalar(f32, struct {
     pub fn toStr(v: f32, allocator: std.mem.Allocator) []const u8 {
         return std.fmt.allocPrint(allocator, "{d}", v) catch "ERR";
     }
 }.toStr);
 
-pub const QiI32 = QiMatrixScalar(i32, struct {
+pub const MInt = MatrixScalar(i32, struct {
     pub fn toStr(v: i32, allocator: std.mem.Allocator) []const u8 {
         return std.fmt.allocPrint(allocator, "{d}", v) catch "ERR";
     }
 }.toStr);
+
+// Verify QiMatrixScalars are compatible.
+
+comptime {
+    _ = Matrix(MFloat);
+    _ = Matrix(MInt);
+}

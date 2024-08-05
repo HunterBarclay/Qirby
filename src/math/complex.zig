@@ -54,16 +54,18 @@ pub const Complex = struct {
 
     pub fn mult(self: Complex, b: Complex) Complex {
         var a = self.clone();
-        a.mutMult(b);
+        _ = a.mutMult(b);
         return a;
     }
 
     /// Store-in-place multiplication between complex numbers. Stored in self.
-    pub fn mutMult(self: *Complex, b: Complex) void {
+    pub fn mutMult(self: *Complex, b: Complex) *Complex {
         const real = (self.real * b.real) - (self.imag * b.imag);
         const imag = (self.real * b.imag) + (self.imag * b.real);
         self.real = real;
         self.imag = imag;
+
+        return self;
     }
 
     pub fn add(self: Complex, b: Complex) Complex {
@@ -72,9 +74,11 @@ pub const Complex = struct {
         return a;
     }
 
-    pub fn mutAdd(self: *Complex, b: Complex) void {
+    pub fn mutAdd(self: *Complex, b: Complex) *Complex {
         self.real += b.real;
         self.imag += b.imag;
+
+        return self;
     }
 
     pub fn eq(self: Complex, b: Complex) bool {
