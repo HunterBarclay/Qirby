@@ -7,10 +7,6 @@ const qirby = @import("qirby");
 
 pub fn main() !void {
     std.debug.print("Hello world\n", .{});
-
-    const a = qirby.math.Complex.make();
-
-    std.debug.print("{s}\n", .{a.toStringCartesian(std.heap.page_allocator)});
 }
 
 fn exampleMain() !void {

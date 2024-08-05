@@ -3,18 +3,48 @@
 const std = @import("std");
 const qirby = @import("qirby");
 
-const print = @import("../util.zig").print;
-const printf = @import("../util.zig").printf;
+const util = @import("../util.zig");
 
 const expect = @import("std").testing.expect;
+const expectApprox = @import("std").testing.expectApproxEqAbs;
 
-test "complex make" {
-    const a = qirby.math.Complex.make();
+test "complex init" {
+    const a = qirby.math.Complex.init();
 
     try expect(a.imag == 0);
     try expect(a.real == 1);
 
-    print("complex make passed\n");
+    util.print("complex init passed\n");
+}
+
+test "complex identity" {
+    const a = qirby.math.Complex.identity();
+
+    try util.expectF32(1.0, a.real);
+    try util.expectF32(0.0, a.imag);
+
+    const b = qirby.math.Complex.identity();
+    const c = a.mult(b);
+
+    try util.expectF32(a.real, c.real);
+    try util.expectF32(a.imag, c.imag);
+
+    util.print("complex identity passed\n");
+}
+
+test "complex zero" {
+    const a = qirby.math.Complex.zero();
+
+    try util.expectF32(0.0, a.real);
+    try util.expectF32(0.0, a.imag);
+
+    const b = qirby.math.Complex.identity();
+    const c = a.mult(b);
+
+    try util.expectF32(a.real, c.real);
+    try util.expectF32(a.imag, c.imag);
+
+    util.print("complex zero passed\n");
 }
 
 test "complex from" {
@@ -23,7 +53,7 @@ test "complex from" {
     try expect(a.imag == 3);
     try expect(a.real == 2);
 
-    print("complex from passed\n");
+    util.print("complex from passed\n");
 }
 
 test "complex fromReal" {
@@ -32,7 +62,7 @@ test "complex fromReal" {
     try expect(a.imag == 0);
     try expect(a.real == 2);
 
-    print("complex fromReal passed\n");
+    util.print("complex fromReal passed\n");
 }
 
 test "complex clone" {
@@ -43,65 +73,67 @@ test "complex clone" {
     try expect(b.real == 7);
     try expect(b.imag == 12);
 
-    print("complex clone passed\n");
+    util.print("complex clone passed\n");
 }
 
-test "complex mul [ (1) * (i) ]" {
+test "complex mult [ (1) * (i) ]" {
     const a = qirby.math.Complex.from(1, 0);
     const b = qirby.math.Complex.from(0, 1);
 
-    const c = a.mul(&b);
+    const c = a.mult(b);
 
     try expect(c.imag == 1);
     try expect(c.real == 0);
 
-    print("complex mul [ (1) * (i) ] passed\n");
+    util.print("complex mul [ (1) * (i) ] passed\n");
 }
 
-test "complex mul2 [ (1) * (i) ]" {
+test "complex mutMult [ (1) * (i) ]" {
     var a = qirby.math.Complex.from(1, 0);
     const b = qirby.math.Complex.from(0, 1);
 
-    a.mul2(&b);
+    a.mutMult(b);
 
     try expect(a.imag == 1);
     try expect(a.real == 0);
 
-    print("complex mul2 [ (1) * (i) ] passed\n");
+    util.print("complex mul2 [ (1) * (i) ] passed\n");
 }
 
 test "complex euler [ 1 ]" {
     const a = qirby.math.Complex.from(1, 0);
 
-    try expect(a.getPhase() == 0);
-    try expect(a.getMagnitude() == 1);
+    try util.expectF32(0.0, a.getPhase());
+    try util.expectF32(1.0, a.getMagnitude());
 
-    print("complex euler [ 1 ] passed\n");
+    util.print("complex euler [ 1 ] passed\n");
 }
 
 test "complex euler [ i ]" {
     const a = qirby.math.Complex.from(0, 1);
 
-    try expect(std.math.approxEqAbs(f32, a.getPhase(), std.math.pi / 2.0, 0.0001));
-    try expect(a.getMagnitude() == 1);
+    try util.expectF32(std.math.pi / 2.0, a.getPhase());
+    try util.expectF32(1.0, a.getMagnitude());
 
-    print("complex euler [ i ] passed\n");
+    util.print("complex euler [ i ] passed\n");
 }
 
 test "complex euler [ -1 ]" {
     const a = qirby.math.Complex.from(-1, 0);
 
-    try expect(std.math.approxEqAbs(f32, a.getPhase(), std.math.pi, 0.0001));
-    try expect(a.getMagnitude() == 1);
+    try util.expectF32(std.math.pi, a.getPhase());
+    try util.expectF32(1.0, a.getMagnitude());
 
-    print("complex euler [ -1 ] passed\n");
+    util.print("complex euler [ -1 ] passed\n");
 }
 
 test "complex euler [ -i ]" {
     const a = qirby.math.Complex.from(0, -1);
 
-    try expect(std.math.approxEqAbs(f32, a.getPhase(), std.math.pi * (3.0 / 2.0), 0.0001));
-    try expect(a.getMagnitude() == 1);
+    try util.expectF32((3.0 / 2.0) * std.math.pi, a.getPhase());
+    try util.expectF32(1.0, a.getMagnitude());
 
-    print("complex euler [ -i ] passed\n");
+    util.print("complex euler [ -i ] passed\n");
 }
+
+// TODO: complex eq
