@@ -203,13 +203,13 @@ fn MatrixScalar(comptime T: type, toStr: fn (T, std.mem.Allocator) []const u8) t
 
 pub const MFloat = MatrixScalar(f32, struct {
     pub fn toStr(v: f32, allocator: std.mem.Allocator) []const u8 {
-        return std.fmt.allocPrint(allocator, "{d}", v) catch "ERR";
+        return std.fmt.allocPrint(allocator, "{d:>.3}", v) catch "ERR";
     }
 }.toStr);
 
 pub const MInt = MatrixScalar(i32, struct {
     pub fn toStr(v: i32, allocator: std.mem.Allocator) []const u8 {
-        return std.fmt.allocPrint(allocator, "{d}", v) catch "ERR";
+        return std.fmt.allocPrint(allocator, "{d:>.3}", v) catch "ERR";
     }
 }.toStr);
 
