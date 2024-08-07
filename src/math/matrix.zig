@@ -99,7 +99,7 @@ pub fn Matrix(comptime T: type) type {
         }
 
         pub fn tensor(self: Self, allocator: std.mem.Allocator, b: Matrix(T)) !Matrix(T) {
-            // I have taken Linear Algebra, but we didn't cover tensors and I can't be bothered to figure out how they actually work.
+            // Not really a pure tensor, but works for my use case so its fine.
             // I'll be going with the simple solution.
             assert(self.nCols == self.nRows);
             assert(b.nCols == b.nRows);

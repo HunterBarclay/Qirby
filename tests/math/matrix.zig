@@ -197,7 +197,7 @@ test "matrix tensor [H] x [H]" {
     try expect(h2.get(3, 2).eq(Complex.from(-0.5, 0.0)));
     try expect(h2.get(3, 3).eq(Complex.from(0.5, 0.0)));
 
-    h2.debugPrint(allocator, "19");
+    h2.debugPrint(allocator, "18");
 
     util.print("matrix tensor [H] x [H] passed\n");
 }
