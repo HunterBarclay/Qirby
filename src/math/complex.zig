@@ -48,6 +48,11 @@ pub const Complex = struct {
 
     // Operations
 
+    pub fn makeIdentity(self: *Complex) void {
+        self.imag = 0.0;
+        self.real = 1.0;
+    }
+
     pub fn clone(self: Complex) Complex {
         return Complex{ .real = self.real, .imag = self.imag };
     }
@@ -88,9 +93,9 @@ pub const Complex = struct {
     // Util
 
     /// Default toString method for Complex. See Cartesian and Euler toString methods.
-    /// Default will be Euler.
     pub fn toString(self: Complex, allocator: std.mem.Allocator) []const u8 {
-        return self.toStringEuler(allocator);
+        // return self.toStringEuler(allocator);
+        return self.toStringCartesian(allocator);
     }
 
     pub fn toStringCartesian(self: Complex, allocator: std.mem.Allocator) []const u8 {

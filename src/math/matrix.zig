@@ -9,11 +9,14 @@ pub const MatrixError = error{
     MisMatchedDimensions,
 };
 
+pub const print = std.debug.print;
+
 pub fn Matrix(comptime T: type) type {
     comptime {
         assert(std.meta.hasMethod(T, "init"));
         assert(std.meta.hasMethod(T, "identity"));
         assert(std.meta.hasMethod(T, "zero"));
+        assert(std.meta.hasMethod(T, "makeIdentity"));
         assert(std.meta.hasMethod(T, "mutAdd"));
         assert(std.meta.hasMethod(T, "mutMult"));
         assert(std.meta.hasMethod(T, "clone"));
@@ -76,17 +79,48 @@ pub fn Matrix(comptime T: type) type {
             var resMatrix = try Matrix(T).init(allocator, self.nRows, b.nCols);
 
             var aRow: usize = 0;
+            var tmpMult: T = T.identity();
             while (aRow < self.nRows) : (aRow += 1) {
                 var bCol: usize = 0;
                 while (bCol < b.nCols) : (bCol += 1) {
                     var prodSum: T = T.zero();
                     var sharedDim: usize = 0;
                     while (sharedDim < self.nCols) : (sharedDim += 1) {
-                        var tmp = self.get(aRow, sharedDim).clone();
-                        _ = tmp.mutMult(b.get(sharedDim, bCol).*);
-                        _ = prodSum.mutAdd(tmp);
+                        _ = tmpMult.mutMult(self.get(aRow, sharedDim).*);
+                        _ = tmpMult.mutMult(b.get(sharedDim, bCol).*);
+                        _ = prodSum.mutAdd(tmpMult);
+                        tmpMult.makeIdentity();
                     }
                     resMatrix.set(aRow, bCol, prodSum);
+                }
+            }
+
+            return resMatrix;
+        }
+
+        pub fn tensor(self: Self, allocator: std.mem.Allocator, b: Matrix(T)) !Matrix(T) {
+            // I have taken Linear Algebra, but we didn't cover tensors and I can't be bothered to figure out how they actually work.
+            // I'll be going with the simple solution.
+            assert(self.nCols == self.nRows);
+            assert(b.nCols == b.nRows);
+
+            const size = self.nRows * b.nRows;
+            var resMatrix = try Matrix(T).init(allocator, size, size);
+            var aRow: usize = 0;
+            // NASTY... yet depending on which variable you choose, this is actually O(n) which makes me want to vomit.
+            while (aRow < self.nRows) : (aRow += 1) {
+                var aCol: usize = 0;
+                while (aCol < self.nCols) : (aCol += 1) {
+                    const aValue = self.get(aRow, aCol);
+                    var bRow: usize = 0;
+                    while (bRow < b.nRows) : (bRow += 1) {
+                        var bCol: usize = 0;
+                        while (bCol < b.nCols) : (bCol += 1) {
+                            var insertValue = aValue.clone();
+                            _ = insertValue.mutMult(b.get(bRow, bCol).*);
+                            resMatrix.set(aRow * b.nRows + bRow, aCol * b.nCols + bCol, insertValue);
+                        }
+                    }
                 }
             }
 
@@ -105,6 +139,19 @@ pub fn Matrix(comptime T: type) type {
 
             return m;
         }
+
+        pub fn debugPrint(self: Self, allocator: std.mem.Allocator, comptime elementStride: []const u8) void {
+            print("==== START MATRIX ====\n", .{});
+            var r: usize = 0;
+            while (r < self.nRows) : (r += 1) {
+                var c: usize = 0;
+                while (c < self.nCols) : (c += 1) {
+                    print("{s:>" ++ elementStride ++ "},", .{self.get(r, c).toString(allocator)});
+                }
+                print("\n", .{});
+            }
+            print("==== END MATRIX ====\n", .{});
+        }
     };
 }
 
@@ -115,7 +162,7 @@ fn MatrixScalar(comptime T: type, toStr: fn (T, std.mem.Allocator) []const u8) t
         value: T,
 
         pub fn init() Self {
-            return .{ .value = 0.0 };
+            return .{ .value = 0 };
         }
 
         pub fn from(val: T) Self {
@@ -123,11 +170,15 @@ fn MatrixScalar(comptime T: type, toStr: fn (T, std.mem.Allocator) []const u8) t
         }
 
         pub fn identity() Self {
-            return .{ .value = 1.0 };
+            return .{ .value = 1 };
         }
 
         pub fn zero() Self {
-            return .{ .value = 0.0 };
+            return .{ .value = 0 };
+        }
+
+        pub fn makeIdentity(self: *Self) void {
+            self.value = 1;
         }
 
         pub fn mutAdd(self: *Self, b: Self) *Self {

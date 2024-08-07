@@ -9,6 +9,7 @@ const expect = @import("std").testing.expect;
 
 const MInt = qirby.math.MInt;
 const MFloat = qirby.math.MFloat;
+const Complex = qirby.math.Complex;
 
 test "matrix init" {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -115,4 +116,88 @@ test "matrix mult i32" {
     try expect(c.get(2, 3).value == 68);
 
     util.print("matrix mult i32 passed\n");
+}
+
+test "matrix mult complex [1, 0] * [H]" {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    const allocator = arena.allocator();
+    defer arena.deinit();
+
+    var state = try qirby.math.Matrix(Complex).init(allocator, 2, 1);
+    defer state.deinit();
+
+    const stateValues = [_]Complex{
+        Complex.from(1.0, 0.0),
+        Complex.from(0.0, 0.0),
+    };
+    try state.setAll(stateValues[0..]);
+
+    var hadamard = try qirby.math.Matrix(Complex).init(allocator, 2, 2);
+    defer hadamard.deinit();
+
+    const hadamardValues = [_]Complex{
+        Complex.from(std.math.sqrt1_2, 0.0), Complex.from(std.math.sqrt1_2, 0.0),
+        Complex.from(std.math.sqrt1_2, 0.0), Complex.from(-std.math.sqrt1_2, 0.0),
+    };
+    try hadamard.setAll(hadamardValues[0..]);
+
+    const out = try hadamard.mult(allocator, state);
+    defer out.deinit();
+
+    try expect(out.nRows == 2);
+    try expect(out.nCols == 1);
+
+    try expect(out.get(0, 0).eq(Complex.from(std.math.sqrt1_2, 0.0)));
+    try expect(out.get(1, 0).eq(Complex.from(std.math.sqrt1_2, 0.0)));
+
+    util.print("matrix mult complex [1, 0] * [H] passed\n");
+}
+
+test "matrix tensor [H] x [H]" {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    const allocator = arena.allocator();
+    defer arena.deinit();
+
+    var hadamard1 = try qirby.math.Matrix(Complex).init(allocator, 2, 2);
+    defer hadamard1.deinit();
+
+    var hadamard2 = try qirby.math.Matrix(Complex).init(allocator, 2, 2);
+    defer hadamard2.deinit();
+
+    const hadamardValues = [_]Complex{
+        Complex.from(std.math.sqrt1_2, 0.0), Complex.from(std.math.sqrt1_2, 0.0),
+        Complex.from(std.math.sqrt1_2, 0.0), Complex.from(-std.math.sqrt1_2, 0.0),
+    };
+    try hadamard1.setAll(hadamardValues[0..]);
+    try hadamard2.setAll(hadamardValues[0..]);
+
+    const h2 = try hadamard1.tensor(allocator, hadamard2);
+    defer h2.deinit();
+
+    try expect(h2.nRows == 4);
+    try expect(h2.nCols == 4);
+
+    try expect(h2.get(0, 0).eq(Complex.from(0.5, 0.0)));
+    try expect(h2.get(0, 1).eq(Complex.from(0.5, 0.0)));
+    try expect(h2.get(0, 2).eq(Complex.from(0.5, 0.0)));
+    try expect(h2.get(0, 3).eq(Complex.from(0.5, 0.0)));
+
+    try expect(h2.get(1, 0).eq(Complex.from(0.5, 0.0)));
+    try expect(h2.get(1, 1).eq(Complex.from(-0.5, 0.0)));
+    try expect(h2.get(1, 2).eq(Complex.from(0.5, 0.0)));
+    try expect(h2.get(1, 3).eq(Complex.from(-0.5, 0.0)));
+
+    try expect(h2.get(2, 0).eq(Complex.from(0.5, 0.0)));
+    try expect(h2.get(2, 1).eq(Complex.from(0.5, 0.0)));
+    try expect(h2.get(2, 2).eq(Complex.from(-0.5, 0.0)));
+    try expect(h2.get(2, 3).eq(Complex.from(-0.5, 0.0)));
+
+    try expect(h2.get(3, 0).eq(Complex.from(0.5, 0.0)));
+    try expect(h2.get(3, 1).eq(Complex.from(-0.5, 0.0)));
+    try expect(h2.get(3, 2).eq(Complex.from(-0.5, 0.0)));
+    try expect(h2.get(3, 3).eq(Complex.from(0.5, 0.0)));
+
+    h2.debugPrint(allocator, "19");
+
+    util.print("matrix tensor [H] x [H] passed\n");
 }
