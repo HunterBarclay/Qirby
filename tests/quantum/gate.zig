@@ -106,3 +106,63 @@ test "gate identity 5" {
 
     util.print("gate identity 5 passed\n");
 }
+
+test "gate hadamard" {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    const allocator = arena.allocator();
+    defer arena.deinit();
+
+    const hadamard = try Gate.hadamard(allocator);
+
+    try expect(hadamard.nLanes == 1);
+    try expect(hadamard.matrix.nRows == 2);
+    try expect(hadamard.matrix.nCols == 2);
+
+    try expect(hadamard.matrix.get(0, 0).eq(Complex.from(std.math.sqrt1_2, 0)));
+    try expect(hadamard.matrix.get(0, 1).eq(Complex.from(std.math.sqrt1_2, 0)));
+    try expect(hadamard.matrix.get(1, 0).eq(Complex.from(std.math.sqrt1_2, 0)));
+    try expect(hadamard.matrix.get(1, 1).eq(Complex.from(-std.math.sqrt1_2, 0)));
+
+    hadamard.matrix.debugPrint(allocator, "18");
+
+    util.print("gate hadamard passed\n");
+}
+
+test "gate cx" {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    const allocator = arena.allocator();
+    defer arena.deinit();
+
+    const cx = try Gate.cx(allocator);
+
+    try expect(cx.nLanes == 2);
+    try expect(cx.matrix.nRows == 4);
+    try expect(cx.matrix.nCols == 4);
+
+    const complexIdent = Complex.identity();
+    const complexZero = Complex.zero();
+
+    try expect(cx.matrix.get(0, 0).eq(complexIdent));
+    try expect(cx.matrix.get(0, 1).eq(complexZero));
+    try expect(cx.matrix.get(0, 2).eq(complexZero));
+    try expect(cx.matrix.get(0, 3).eq(complexZero));
+
+    try expect(cx.matrix.get(1, 0).eq(complexZero));
+    try expect(cx.matrix.get(1, 1).eq(complexIdent));
+    try expect(cx.matrix.get(1, 2).eq(complexZero));
+    try expect(cx.matrix.get(1, 3).eq(complexZero));
+
+    try expect(cx.matrix.get(2, 0).eq(complexZero));
+    try expect(cx.matrix.get(2, 1).eq(complexZero));
+    try expect(cx.matrix.get(2, 2).eq(complexZero));
+    try expect(cx.matrix.get(2, 3).eq(complexIdent));
+
+    try expect(cx.matrix.get(3, 0).eq(complexZero));
+    try expect(cx.matrix.get(3, 1).eq(complexZero));
+    try expect(cx.matrix.get(3, 2).eq(complexIdent));
+    try expect(cx.matrix.get(3, 3).eq(complexZero));
+
+    cx.matrix.debugPrint(allocator, "18");
+
+    util.print("gate cx passed\n");
+}

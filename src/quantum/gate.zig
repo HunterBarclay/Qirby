@@ -64,4 +64,42 @@ pub const Gate = struct {
 
         return gate;
     }
+
+    pub fn hadamard(allocator: std.mem.Allocator) !Gate {
+        const hadamardValues = [_]Complex{
+            Complex.from(std.math.sqrt1_2, 0.0), Complex.from(std.math.sqrt1_2, 0.0),
+            Complex.from(std.math.sqrt1_2, 0.0), Complex.from(-std.math.sqrt1_2, 0.0),
+        };
+        const g = try Gate.init(allocator, 1, hadamardValues[0..]);
+        return g;
+    }
+
+    pub fn pauliX(allocator: std.mem.Allocator) !Gate {
+        const values = [_]Complex{
+            Complex.zero(),     Complex.identity(),
+            Complex.identity(), Complex.zero(),
+        };
+        const g = try Gate.init(allocator, 1, values[0..]);
+        return g;
+    }
+
+    pub fn pauliZ(allocator: std.mem.Allocator) !Gate {
+        const values = [_]Complex{
+            Complex.identity(), Complex.zero(),
+            Complex.zero(),     Complex.from(-1.0, 0.0),
+        };
+        const g = try Gate.init(allocator, 1, values[0..]);
+        return g;
+    }
+
+    pub fn cx(allocator: std.mem.Allocator) !Gate {
+        const values = [_]Complex{
+            Complex.identity(), Complex.zero(),     Complex.zero(),     Complex.zero(),
+            Complex.zero(),     Complex.identity(), Complex.zero(),     Complex.zero(),
+            Complex.zero(),     Complex.zero(),     Complex.zero(),     Complex.identity(),
+            Complex.zero(),     Complex.zero(),     Complex.identity(), Complex.zero(),
+        };
+        const g = try Gate.init(allocator, 2, values[0..]);
+        return g;
+    }
 };
