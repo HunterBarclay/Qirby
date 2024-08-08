@@ -24,7 +24,7 @@ test "state init" {
     try util.expectF32(1.0, try s.sampleStatePossibility(0));
     try util.expectF32(0.0, try s.sampleStatePossibility(1));
 
-    s.matrix.debugPrint(allocator, "18");
+    // s.matrix.debugPrint(allocator, "18");
 
     util.print("state init passed\n");
 }
@@ -43,7 +43,7 @@ test "state X" {
     try util.expectF32(0.0, try s.sampleStatePossibility(0));
     try util.expectF32(1.0, try s.sampleStatePossibility(1));
 
-    s.matrix.debugPrint(allocator, "18");
+    // s.matrix.debugPrint(allocator, "18");
 
     util.print("state X passed\n");
 }
@@ -55,7 +55,7 @@ test "state H" {
 
     var s = try State.init(allocator, 1);
 
-    s.matrix.debugPrint(allocator, "18");
+    // s.matrix.debugPrint(allocator, "18");
 
     try s.applyGate(allocator, try Gate.hadamard(allocator));
 
@@ -68,7 +68,7 @@ test "state H" {
     try expect(s.matrix.get(0, 0).eq(Complex.from(std.math.sqrt1_2, 0.0)));
     try expect(s.matrix.get(1, 0).eq(Complex.from(std.math.sqrt1_2, 0.0)));
 
-    s.matrix.debugPrint(allocator, "18");
+    // s.matrix.debugPrint(allocator, "18");
 
     util.print("state H passed\n");
 }
@@ -80,7 +80,7 @@ test "state X H" {
 
     var s = try State.init(allocator, 1);
 
-    s.matrix.debugPrint(allocator, "18");
+    // s.matrix.debugPrint(allocator, "18");
 
     try s.applyGate(allocator, try Gate.pauliX(allocator));
     try s.applyGate(allocator, try Gate.hadamard(allocator));
@@ -94,7 +94,7 @@ test "state X H" {
     try expect(s.matrix.get(0, 0).eq(Complex.from(std.math.sqrt1_2, 0.0)));
     try expect(s.matrix.get(1, 0).eq(Complex.from(-std.math.sqrt1_2, 0.0)));
 
-    s.matrix.debugPrint(allocator, "18");
+    // s.matrix.debugPrint(allocator, "18");
 
     util.print("state X H passed\n");
 }

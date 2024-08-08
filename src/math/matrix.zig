@@ -127,6 +127,20 @@ pub fn Matrix(comptime T: type) type {
             return resMatrix;
         }
 
+        pub fn transpose(self: Self, allocator: std.mem.Allocator) !Matrix(T) {
+            var mat = try Matrix(T).init(allocator, self.nCols, self.nRows);
+
+            var r: usize = 0;
+            while (r < self.nRows) : (r += 1) {
+                var c: usize = 0;
+                while (c < self.nCols) : (c += 1) {
+                    mat.set(c, r, self.get(r, c).*);
+                }
+            }
+
+            return mat;
+        }
+
         pub fn identity(allocator: std.mem.Allocator, nRows: usize, nCols: usize) !Self {
             assert(nRows == nCols);
 

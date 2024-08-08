@@ -99,7 +99,7 @@ pub const Complex = struct {
     }
 
     pub fn toStringCartesian(self: Complex, allocator: std.mem.Allocator) []const u8 {
-        return std.fmt.allocPrint(allocator, "{d:.3} + {d:.3}i", .{ self.real, self.imag }) catch "ERR";
+        return std.fmt.allocPrint(allocator, "{d:.2} + {d:.2}i", .{ self.real, self.imag }) catch "ERR";
     }
 
     pub fn toStringEuler(self: Complex, allocator: std.mem.Allocator) []const u8 {
