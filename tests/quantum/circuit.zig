@@ -10,66 +10,46 @@ const Gate = qirby.quantum.Gate;
 const State = qirby.quantum.State;
 const Circuit = qirby.quantum.Circuit;
 
-test "circuit create mapping [0 1 2 3 4 5] -> [3 5 1 ...]" {
+test "circuit init" {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena.allocator();
     defer arena.deinit();
 
-    const mapping = [_]usize{ 3, 5, 1 };
-    const swapOperators = try Circuit.createMapping(allocator, 6, mapping[0..]);
+    const c = try Circuit.init(allocator, 2);
+    _ = c;
 
-    const compIdentity = Complex.identity();
-    const compZero = Complex.zero();
+    util.print("circuit init\n");
+}
 
-    var s = try State.init(allocator, 6);
-    s.matrix.set(0, 0, compZero);
-    s.matrix.set(21, 0, compIdentity);
+test "circuit amp [11]" {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    const allocator = arena.allocator();
+    defer arena.deinit();
 
-    // Swap qubits and verify order
-    {
-        const g = try Gate.from(6, swapOperators.to);
-        try s.applyGate(allocator, g);
+    var c = try Circuit.init(allocator, 2);
 
-        var stateRow: usize = 0;
-        while (stateRow < s.matrix.nRows) : (stateRow += 1) {
-            if (stateRow == 56) {
-                try expect(s.matrix.get(stateRow, 0).eq(compIdentity));
-            } else {
-                try expect(s.matrix.get(stateRow, 0).eq(compZero));
-            }
-        }
-    }
+    try c.addGate(allocator, try Gate.hadamard(allocator), &[_]usize{0});
+    try c.addGate(allocator, try Gate.hadamard(allocator), &[_]usize{1});
 
-    // Unswap qubits and verify order
-    {
-        const g = try Gate.from(6, swapOperators.from);
-        try s.applyGate(allocator, g);
+    try c.addGate(allocator, try Gate.cz(allocator), null);
 
-        var stateRow: usize = 0;
-        while (stateRow < s.matrix.nRows) : (stateRow += 1) {
-            if (stateRow == 21) {
-                try expect(s.matrix.get(stateRow, 0).eq(compIdentity));
-            } else {
-                try expect(s.matrix.get(stateRow, 0).eq(compZero));
-            }
-        }
-    }
+    try c.addGate(allocator, try Gate.hadamard(allocator), &[_]usize{0});
+    try c.addGate(allocator, try Gate.hadamard(allocator), &[_]usize{1});
+    try c.addGate(allocator, try Gate.cz(allocator), null);
+    try c.addGate(allocator, try Gate.pauliZ(allocator), &[_]usize{0});
+    try c.addGate(allocator, try Gate.pauliZ(allocator), &[_]usize{1});
+    try c.addGate(allocator, try Gate.hadamard(allocator), &[_]usize{0});
+    try c.addGate(allocator, try Gate.hadamard(allocator), &[_]usize{1});
 
-    // Verify Unitary
-    const ident = try swapOperators.from.mult(allocator, swapOperators.to);
-    // ident.debugPrint(allocator, "14");
+    try c.compile(allocator);
 
-    var r: usize = 0;
-    while (r < ident.nRows) : (r += 1) {
-        var c: usize = 0;
-        while (c < ident.nCols) : (c += 1) {
-            if (r == c) {
-                try expect(ident.get(r, c).eq(compIdentity));
-            } else {
-                try expect(ident.get(r, c).eq(compZero));
-            }
-        }
-    }
+    var state = try State.init(allocator, 2);
+    try c.run(allocator, &state);
 
-    util.print("circuit create mapping [0 1 2 3 4 5] -> [3 5 1 ...]\n");
+    try util.expectF32(0.0, try state.sampleStatePossibility(0));
+    try util.expectF32(0.0, try state.sampleStatePossibility(1));
+    try util.expectF32(0.0, try state.sampleStatePossibility(2));
+    try util.expectF32(1.0, try state.sampleStatePossibility(3));
+
+    util.print("circuit init\n");
 }

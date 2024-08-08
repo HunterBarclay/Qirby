@@ -3,6 +3,18 @@
 
 Hunter's, duct-taped together, Quantum Computation Simulator. The goal is to be able to build out small QPU programs for the purposes of testing and overall expanding my understanding of Quantum computation.
 
+## Usage
+
+This was the project I decided to remake to learn Zig. That being said, during the middle of the remake, I really started to hate Zig and had other project ideas in mind, so the overall quality from a "Zig perspective" is pretty bad.
+
+### Testing
+
+I've been using the following command to test the code. Via unit tests, The "circuit amp [11]" test is a quantum circuit that amplifies the $\ket{11}$ state in a two qubit system:
+
+```bash 
+$ zig build test --summary all
+```
+
 ## Resources References
 Most of my references for logic gates and math is from [this wikipedia article](https://en.wikipedia.org/wiki/Quantum_logic_gate). That, in addition to YouTube video's and [IBM's Quantum Composer](https://quantum.ibm.com/composer/files/cc6d1bce43e28c38529b70c8d3e27c90f6b9f9625c81edb341d02bbafc3d589c).
 
