@@ -31,7 +31,9 @@ pub const State = struct {
     }
 
     pub fn applyGate(self: *State, allocator: std.mem.Allocator, gate: Gate) !void {
-        self.matrix = try gate.matrix.mult(allocator, self.matrix);
+        const nextMat = try gate.matrix.mult(allocator, self.matrix);
+        self.matrix.deinit();
+        self.matrix = nextMat;
 
         assert(self.matrix.nRows == self.nPossibilities);
         assert(self.matrix.nCols == 1);

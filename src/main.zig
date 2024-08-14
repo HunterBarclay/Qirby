@@ -5,35 +5,55 @@ const std = @import("std");
 
 const qirby = @import("qirby");
 
+const Circuit = qirby.quantum.Circuit;
+const Gate = qirby.quantum.Gate;
+const State = qirby.quantum.State;
+
+const util = qirby.util;
+
 pub fn main() !void {
-    std.debug.print("Hello world\n", .{});
-}
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    const allocator = arena.allocator();
+    defer arena.deinit();
 
-fn exampleMain() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    var c = try Circuit.init(allocator, 12);
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+    util.print("Gate:  0 / 10\n");
+    try c.addGate(allocator, try Gate.hadamard(allocator), &[_]usize{0});
+    util.print("Gate:  1 / 10\n");
+    try c.addGate(allocator, try Gate.hadamard(allocator), &[_]usize{1});
+    util.print("Gate:  2 / 10\n");
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
+    try c.addGate(allocator, try Gate.cz(allocator), null);
+    util.print("Gate:  3 / 10\n");
 
-    try bw.flush(); // Don't forget to flush!
-}
+    try c.addGate(allocator, try Gate.hadamard(allocator), &[_]usize{0});
+    util.print("Gate:  4 / 10\n");
+    try c.addGate(allocator, try Gate.hadamard(allocator), &[_]usize{1});
+    util.print("Gate:  5 / 10\n");
+    try c.addGate(allocator, try Gate.cz(allocator), null);
+    util.print("Gate:  6 / 10\n");
+    try c.addGate(allocator, try Gate.pauliZ(allocator), &[_]usize{0});
+    util.print("Gate:  7 / 10\n");
+    try c.addGate(allocator, try Gate.pauliZ(allocator), &[_]usize{1});
+    util.print("Gate:  8 / 10\n");
+    try c.addGate(allocator, try Gate.hadamard(allocator), &[_]usize{0});
+    util.print("Gate:  9 / 10\n");
+    try c.addGate(allocator, try Gate.hadamard(allocator), &[_]usize{1});
+    util.print("Gate: 10 / 10\n");
 
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // Try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
-}
+    util.print("Compiling...\n");
+    try c.compile(allocator);
+    util.print("Compilation complete.\n");
 
-test "fuzz example" {
-    // Try passing `--fuzz` to `zig build` and see if it manages to fail this test case!
-    const input_bytes = std.testing.fuzzInput(.{});
-    try std.testing.expect(!std.mem.eql(u8, "canyoufindme", input_bytes));
+    var state = try State.init(allocator, 12);
+    try c.run(allocator, &state);
+
+    try util.expectF32(0.0, try state.sampleStatePossibility(0b000000000000));
+    try util.expectF32(0.0, try state.sampleStatePossibility(0b010000000000));
+    try util.expectF32(0.0, try state.sampleStatePossibility(0b100000000000));
+    try util.expectF32(1.0, try state.sampleStatePossibility(0b110000000000));
+
+    util.print("Results nominal.");
+    state.matrix.debugPrint(allocator, "18");
 }

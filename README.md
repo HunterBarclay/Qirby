@@ -3,6 +3,9 @@
 
 Hunter's, duct-taped together, Quantum Computation Simulator. The goal is to be able to build out small QPU programs for the purposes of testing and overall expanding my understanding of Quantum computation.
 
+> [!IMPORTANT]
+> **DISCLAIMER**: This project is not intended to be performant or in any way an improvement on existing alternatives, but rather a playground for me to learn.
+
 ## Usage
 
 This was the project I decided to remake to learn Zig. That being said, during the middle of the remake, I really started to hate Zig and had other project ideas in mind, so the overall quality from a "Zig perspective" is pretty bad.

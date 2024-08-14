@@ -55,8 +55,14 @@ pub const Circuit = struct {
 
         var i: usize = 0;
         while (i < self.operations.items.len) : (i += 1) {
-            m = try self.operations.items[i].matrix.mult(allocator, m);
+            const next = self.operations.items[i];
+            const latestMatrix = try next.matrix.mult(allocator, m);
+            next.deinit();
+            m.deinit();
+            m = latestMatrix;
         }
+
+        self.operations.deinit();
 
         self.compiled = try Gate.from(self.nLanes, m);
     }
