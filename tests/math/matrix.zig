@@ -13,13 +13,20 @@ const Complex = qirby.math.Complex;
 
 test "matrix init" {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    const allocator = arena.allocator();
     defer arena.deinit();
 
-    const a = try qirby.math.Matrix(qirby.math.Complex).init(allocator, 4, 4);
+    util.printf("Before Capacity: {d}\n", .{arena.queryCapacity()});
+    {
+        const allocator = arena.allocator();
 
-    try expect(a.nRows == 4);
-    try expect(a.nCols == 4);
+        const a = try qirby.math.Matrix(qirby.math.Complex).init(allocator, 4, 4);
+        defer a.deinit();
+
+        try expect(a.nRows == 4);
+        try expect(a.nCols == 4);
+    }
+
+    util.printf("After Capacity: {d}\n", .{arena.queryCapacity()});
 
     util.print("matrix init passed\n");
 }

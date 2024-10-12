@@ -18,6 +18,9 @@ I've been using the following command to test the code. Via unit tests, The "cir
 $ zig build test --summary all
 ```
 
+### Fun notes
+Because this is just a playground for me, this is not optimized at all. There are a number of memory leaks that aren't being addressed and the performance isn't great, that being said for a quantum sim with a useful amount of Qubits would take forever anyways.
+
 ## Resources References
 Most of my references for logic gates and math is from [this wikipedia article](https://en.wikipedia.org/wiki/Quantum_logic_gate). That, in addition to YouTube video's and [IBM's Quantum Composer](https://quantum.ibm.com/composer/files/cc6d1bce43e28c38529b70c8d3e27c90f6b9f9625c81edb341d02bbafc3d589c).
 
